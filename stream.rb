@@ -1,8 +1,14 @@
 require 'em-twitter'
+require 'pubnub'
 
 $stdout.sync = true
 
 EM::run do
+
+  pubnub = Pubnub.new(
+    :publish_key => ENV['PUBNUB_PUBLISH_KEY'],
+    :subscribe_key => ENV['PUBNUB_SUBSCRIBE_KEY']
+  )
 
   options = {
     :path   => '/1/statuses/filter.json',
@@ -20,6 +26,12 @@ EM::run do
   client = EM::Twitter::Client.connect(options)
 
   client.each do |result|
-    puts result
+    pub_callback = lambda { |envelope| puts(envelope.msg) }
+
+    pubnub.publish(
+      channel: ENV['PUBNUB_CHANNEL'],
+      message: result,
+      callback: pub_callback
+    )
   end
 end
